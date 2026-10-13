@@ -1,0 +1,167 @@
+\documentclass[10pt,a4paper]{article}
+
+\usepackage[margin=2cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+
+\setlength{\parskip}{0.3em}
+\setlength{\parindent}{0pt}
+\setlist{nosep,leftmargin=1.2em}
+
+\title{\vspace{-1.5cm}Consumer Choice in Differentiated-Product Markets:\\
+The BLP Model through a Systems and Control Lens}
+\author{Sara Betancur Giraldo\\\small KTH Royal Institute of Technology}
+\date{\vspace{-0.6em}\today}
+
+\begin{document}
+\maketitle
+\vspace{-1.2em}
+
+\section{Scope}
+Ariel Pakes' central contribution to the modelling of consumer choice is the
+random-coefficients discrete-choice demand system of Berry, Levinsohn and
+Pakes (BLP)~\cite{BLP1995}. BLP recovers heterogeneous preferences and firms'
+markups from aggregate market data while accounting for the fact that prices
+respond to demand conditions that the analyst does not observe. This note
+reviews the model and the literature around it, states it mathematically, and
+reads it from the perspective of systems and control theory, with the aim of
+identifying where game theory can enter the research of a control group.
+
+\section{Literature}
+\textbf{Foundations.} The random-utility multinomial logit of
+McFadden~\cite{McFadden1974} models a consumer choosing the alternative with the
+highest utility under i.i.d.\ extreme-value noise. Its closed-form choice
+probabilities come at the price of the independence of irrelevant alternatives
+(IIA): substitution patterns depend only on market shares.
+Berry~\cite{Berry1994} showed that with market-level data the share equations
+can be \emph{inverted} to recover a mean-utility index in which the unobserved
+product quality enters linearly, turning a non-linear endogeneity problem into
+a linear instrumental-variables (IV) problem.
+
+\textbf{The BLP model.} BLP~\cite{BLP1995} combined the inversion with random
+coefficients on product characteristics, which breaks IIA, and with a
+Bertrand--Nash pricing game on the supply side, estimating both jointly by GMM
+on U.S.\ automobile data. Nevo~\cite{Nevo2001} used the framework to measure
+market power in the cereal industry and became a standard reference for its
+implementation, while BLP~\cite{BLP2004} added consumer-level ``micro moments''
+to sharpen identification of heterogeneity.
+
+\textbf{Identification and computation.} Berry and Haile~\cite{BerryHaile2014}
+established nonparametric identification of demand from market-level data under
+an index restriction and suitable instruments. On the numerical side, Dub\'e,
+Fox and Su~\cite{DubeFoxSu2012} showed that loose tolerances in the inner
+fixed-point loop bias estimates and proposed a constrained-optimisation (MPEC)
+formulation; Conlon and Gortmaker~\cite{ConlonGortmaker2020} consolidated best
+practices (instruments, integration, optimisation) in the PyBLP package.
+
+\textbf{Dynamics and Pakes' broader programme.} Ericson and
+Pakes~\cite{EricsonPakes1995} model industry evolution as a stochastic game with
+entry, exit and investment, solved for a Markov-perfect equilibrium; this is the
+dynamic supply-side counterpart to static BLP demand. Gowrisankaran and
+Rysman~\cite{GowrisankaranRysman2012} make demand itself dynamic, with
+forward-looking consumers who time durable-good purchases. Pakes, Porter, Ho
+and Ishii~\cite{PPHI2015} replace point-identifying equilibrium conditions with
+\emph{moment inequalities} derived from revealed preference, yielding set
+estimates robust to agents' imperfect information.
+
+\section{Mathematical Model}
+Consider markets $t=1,\dots,T$, products $j=1,\dots,J_t$ and an outside good
+$j=0$. Consumer $i$ obtains utility
+\begin{equation}
+u_{ijt} = \underbrace{x_{jt}^\top\beta - \alpha p_{jt} + \xi_{jt}}_{\delta_{jt}}
+ + \underbrace{\textstyle\sum_k x_{jtk}\,\sigma_k \nu_{ik}}_{\mu_{ijt}(\theta_2)}
+ + \varepsilon_{ijt}, \qquad u_{i0t}=\varepsilon_{i0t},
+\end{equation}
+with observed characteristics $x_{jt}$, price $p_{jt}$, unobserved quality
+$\xi_{jt}$, taste shocks $\nu_i\sim F$ and $\varepsilon_{ijt}$ i.i.d.\ type-I
+extreme value. Integrating over consumers gives the market shares
+\begin{equation}
+s_{jt}(\delta_t;\theta_2)=\int \frac{\exp(\delta_{jt}+\mu_{ijt})}
+{1+\sum_{k=1}^{J_t}\exp(\delta_{kt}+\mu_{ikt})}\,dF(\nu_i).
+\end{equation}
+\emph{Inversion.} For given $\theta_2$, the observed shares $\mathcal{S}_t$ are
+matched by the unique fixed point of
+\begin{equation}
+\delta_t^{h+1}=\Phi(\delta_t^h)=\delta_t^h+\ln \mathcal{S}_t-\ln s_t(\delta_t^h;\theta_2),
+\end{equation}
+which is a contraction~\cite{BLP1995}. \emph{Estimation.} Since prices are
+correlated with $\xi$, one recovers
+$\xi_{jt}(\theta)=\delta_{jt}(\theta_2)-x_{jt}^\top\beta+\alpha p_{jt}$ and
+solves $\min_\theta\,\bar g(\theta)^\top W \bar g(\theta)$ with
+$\bar g(\theta)=\frac1N\sum_{jt} Z_{jt}\,\xi_{jt}(\theta)$, where the
+instruments $Z$ (cost shifters, rivals' characteristics) satisfy
+$\mathbb{E}[\xi_{jt}\mid Z_{jt}]=0$.
+\emph{Supply.} Firm $f$ owning products $\mathcal{F}_f$ maximises
+$\sum_{j\in\mathcal F_f}(p_j-mc_j)\,s_j(p)$. The Bertrand--Nash first-order
+conditions give
+\begin{equation}
+p = mc + \Delta(p)^{-1}s(p),\qquad
+\Delta_{jk}=-\frac{\partial s_k}{\partial p_j}\,\mathbf{1}\{j,k\text{ same owner}\},
+\end{equation}
+so observed prices and estimated demand reveal marginal costs and markups.
+
+\section{A Systems and Control Reading}
+\begin{itemize}
+\item \textbf{Price endogeneity is closed-loop identification.} Firms set the
+input $p$ through a feedback law, (4), that reacts to the disturbance $\xi$. As
+in closed-loop system identification~\cite{Ljung1999}, regressing output on
+input is biased; cost shifters play the role of an external reference signal,
+and BLP instruments are the econometric analogue of IV methods in system
+identification.
+\item \textbf{Logit choice is entropy-regularised optimisation.} The logit share
+vector solves $\max_{s\in\Delta}\langle s,u\rangle+H(s)$ with $H(s)=-\sum_j
+s_j\ln s_j$, i.e.\ a softmax (smoothed best response). Mixed logit is a
+heterogeneous population of such agents.
+\item \textbf{Inversion and equilibrium are fixed-point problems.} (3) is a
+contraction iteration whose modulus determines convergence speed; the inner
+tolerance issue of~\cite{DubeFoxSu2012} is an error-propagation question, and
+MPEC turns the nested loop into a single constrained programme, as in MPC.
+\item \textbf{Recovering costs is an inverse game.} (4) inverts Nash conditions
+to recover agents' objectives from observed equilibrium play, the game-theoretic
+counterpart of inverse optimal control.
+\item \textbf{Shares are a population state.} With shares as a state on the
+simplex, the logit dynamics $\dot s=\sigma(u(s))-s$ of population
+games~\cite{Sandholm2010} give equilibrium as a rest point whose stability can
+be analysed with Lyapunov and passivity tools; with a continuum of
+heterogeneous, forward-looking consumers the natural object is a mean-field
+game~\cite{HuangMalhameCaines2006}.
+\item \textbf{Dynamic models are stochastic dynamic games.} Ericson--Pakes
+equilibria are feedback (Markov) Nash equilibria in the sense of
+Ba\c{s}ar--Olsder~\cite{BasarOlsder1999}, and moment
+inequalities~\cite{PPHI2015} parallel set-membership estimation in robust
+control.
+\end{itemize}
+
+\section{Integrating Game Theory: Research Directions}
+\begin{enumerate}
+\item \textbf{Feedback Nash pricing with demand dynamics:} couple a dynamic
+demand state (adoption, inventories, network effects) with firms' pricing as a
+differential or difference game; study existence, uniqueness and stability of
+feedback equilibria~\cite{BasarOlsder1999,EricsonPakes1995}.
+\item \textbf{Learning in games and adaptive control:} firms that estimate BLP
+demand online while pricing face a dual-control trade-off between exploration
+and exploitation; convergence of best-response or gradient learning to the
+Bertrand--Nash equilibrium is an open systems question.
+\item \textbf{Leader--follower design:} a regulator or platform (Stackelberg
+leader) steers a population of logit consumers and competing firms through
+taxes, subsidies or information, linking incentive design with population-game
+stability~\cite{Sandholm2010}.
+\item \textbf{Identification of games from data:} closed-loop identification
+theory~\cite{Ljung1999} can inform instrument design, excitation conditions and
+inverse-game estimation of agents' objectives in multi-agent systems.
+\item \textbf{Large-population limits:} mean-field games~\cite{HuangMalhameCaines2006}
+offer a tractable model of many strategic consumers with BLP-style heterogeneity.
+\end{enumerate}
+In summary, BLP is at its core an estimation problem for a static Nash
+equilibrium of a population game under feedback; making the dynamics,
+learning and control explicit is where control theory can contribute most.
+
+\bibliographystyle{plainnat}
+{\small\bibliography{references}}
+
+\end{document}
